@@ -56,7 +56,7 @@ passport.use(
     new GoogleStrategy({
         clientID: config.auth.google_client_id,
         clientSecret: config.auth.google_client_secret,
-        callbackURL: config.auth.redirect_uri
+        callbackURL: "/auth/google/callback"
     }, async(accessToken, refreshToken, profile, done) => {
         const users = await loadUsers();
 
