@@ -2,10 +2,38 @@
 <html>
     <head>
         <style>
-            body{
-                font-family: arial;
-                margin: 0;
-            }
+        body{
+		    padding-bottom:4.2rem;
+		    background:rgba(0, 0, 0, 0.76);
+        }
+        a{
+            text-decoration:none !important;
+        }
+        h1,h2,h3{
+            font-family: 'Kaushan Script', cursive;
+        }
+        h5 {
+            padding: 20px 20px 0px 20px
+        }
+        h6 {
+            padding: 0px 20px 0px 20px
+        }
+        .myform{
+		    position: relative;
+		    display: -ms-flexbox;
+            display: flex;
+            padding: 3rem 3rem 3rem 3rem;
+            -ms-flex-direction: column;
+            flex-direction: column;
+            width: 100%;
+            pointer-events: auto;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid rgba(0,0,0,.2);
+            border-radius: 1.1rem;
+            outline: 0;
+            max-width: 500px;
+		}
         </style>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
         <meta charset="utf-8">
@@ -41,6 +69,55 @@
               </div>
             </div>
           </nav>
+          <h5> Welcome to your profile <%= user.username %></h5>
+          <h6>Your balance is <%= balance %> </h6>
+          <h6>Your account number is <%= user._id %> </h6>
+          <div class="d-flex align-items-start" style="padding: 1rem 1rem 1rem 1rem">
+            <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+              <button class="nav-link active" id="v-pills-home-tab" data-bs-toggle="pill" data-bs-target="#v-pills-home" type="button" role="tab" aria-controls="v-pills-home" aria-selected="true">Deposit</button>
+              <button class="nav-link" id="v-pills-profile-tab" data-bs-toggle="pill" data-bs-target="#v-pills-profile" type="button" role="tab" aria-controls="v-pills-profile" aria-selected="false">Withdraw</button>
+              <button class="nav-link" id="v-pills-messages-tab" data-bs-toggle="pill" data-bs-target="#v-pills-messages" type="button" role="tab" aria-controls="v-pills-messages" aria-selected="false">Transfer</button>
+              <button class="nav-link" id="v-pills-settings-tab" data-bs-toggle="pill" data-bs-target="#v-pills-settings" type="button" role="tab" aria-controls="v-pills-settings" aria-selected="false">History</button>
+            </div>
+            <div class="tab-content" id="v-pills-tabContent" style="padding: 0rem 3rem 3rem 25rem; width: 2000px;">
+              <div class="tab-pane fade show active" id="v-pills-home" role="tabpanel" aria-labelledby="v-pills-home-tab">
+                <form class="myform" action="/deposit" method="POST">
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" name="amount" id="amount" min="1" max="1000" class="form-control" aria-describedby="emailHelp" placeholder="Enter Amount">
+                    </div><br>
+                    <div class="col-md-12 text-center ">
+                        <button type="submit" class=" btn btn-block mybtn btn-primary tx-tfm">Deposit</button>
+                    </div>
+                </form>
+              </div>
+              <div class="tab-pane fade" id="v-pills-profile" role="tabpanel" aria-labelledby="v-pills-profile-tab">
+                <form class="myform" action="/withdraw" method="POST">
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" name="amount" id="amount" min="1" max="1000" class="form-control" aria-describedby="emailHelp" placeholder="Enter Amount">
+                    </div><br>
+                    <div class="col-md-12 text-center ">
+                        <button type="submit" class=" btn btn-block mybtn btn-primary tx-tfm">Withdraw</button>
+                    </div>
+                </form>
+              </div>
+              <div class="tab-pane fade" id="v-pills-messages" role="tabpanel" aria-labelledby="v-pills-messages-tab">
+                <form class="myform" action="/transfer" method="POST">
+                    <div class="form-group">
+                        <label for="account">Account</label>
+                        <input type="text" name="account" required="required" id="account" class="form-control" aria-describedby="emailHelp" placeholder="Enter account number where you want to transfer">
+                        <label for="amount">Amount</label>
+                        <input type="number" name="amount" id="amount" min="1" max="1000" class="form-control" aria-describedby="emailHelp" placeholder="Enter Amount">
+                    </div><br>
+                    <div class="col-md-12 text-center ">
+                        <button type="submit" class=" btn btn-block mybtn btn-primary tx-tfm">Deposit</button>
+                    </div>
+                </form>
+              </div>
+              <div class="tab-pane fade" id="v-pills-settings" role="tabpanel" aria-labelledby="v-pills-settings-tab">...</div>
+            </div>
+          </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
     </body>
 </html>

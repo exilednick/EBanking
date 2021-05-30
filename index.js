@@ -124,28 +124,27 @@ app.get('/profile', async(req, res) => {
 //POST Requests
 
 app.post('/transfer', async(req, res) => {
+    res.redirect('/profile');
+})
 
-    if(isNaN(req.body.amount)) {
-        req.flash("error","Please enter correct value");
-        res.redirect('/profile')
-    } else {
-        const users = await loadUsers();
-        if(req.body.type === 'deposit') {
-            await users.updateOne({
-                username: req.user.username
-            }, {
-                $inc: { balance: parseInt(req.body.amount) }
-            })
-        } else {
-            await users.updateOne({
-                username: req.user.username
-            }, {
-                $inc: { balance: parseInt(-req.body.amount) }
-            })
-        }
+app.post('/deposit', async(req, res) => {
+    const users = await loadUsers();
+    await users.updateOne({
+        username: req.user.username
+    }, {
+        $inc: { balance: parseInt(req.body.amount) }
+    })
+    res.redirect('/profile')
+})
 
-        res.redirect('/profile');
-    }
+app.post('/withdraw', async(req, res) => {
+    const users = await loadUsers();
+    await users.updateOne({
+        username: req.user.username
+    }, {
+        $inc: { balance: parseInt(-req.body.amount) }
+    })
+    res.redirect('/profile')
 })
 
 app.post('/auth/login', passport.authenticate('local', {
