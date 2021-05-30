@@ -14,9 +14,7 @@ app.set('view engine', 'ejs');
 app.use(flash());
 app.use(cookieSession({
     maxAge: 24*60*60*1000,
-    keys:['djachdjcddcd'],
-    resave: false,
-    saveUninitialized: false
+    keys:['djachdjcddcd']
 }))
 app.use(express.urlencoded({extended:false}));
 
@@ -43,10 +41,10 @@ passport.use(
     new LocalStrategy(async(username, password, done) => {
         const users = await loadUsers();
         const user = await users.findOne({
-            username: username,
+            email: username,
         });
         if(!user || !(await bcrypt.compare(password, user.password))) {
-            return done(null, false, {message: "Incorrect username or password"});
+            return done(null, false, {message: "Incorrect email or password"});
         } else if(user)
             done(null, user);
     })
@@ -85,6 +83,8 @@ passport.use(
     }
 ))
 
+// GET requests
+
 app.get('/auth/login', async(req, res) => {
     if(req.user)
         res.redirect('/');
@@ -105,38 +105,8 @@ app.get('/auth/google/callback',passport.authenticate('google', {session: true})
     res.redirect('/profile');
 })
 
-app.post('/auth/local', passport.authenticate('local', {
-    successRedirect: '/profile',
-    failureRedirect: '/auth/login',
-    failureFlash: true
-}))
-
 app.get('/', async(req, res) => {
     res.render('home', {user:req.user});
-})
-
-app.post('/register', async(req, res) => {
-
-    if(req.body.password.length < 8) {
-        req.flash('info', 'Password should have atleast 8 characters');
-        res.redirect('/register');
-    } else {
-        const users = await loadUsers();
-        const user = await users.findOne({
-            username: req.body.username
-        });
-        if(user) {
-            req.flash('info', 'This username already exists');
-            return res.redirect('/register');
-        }
-        const password = await bcrypt.hash(req.body.password, 10);
-        await users.insertOne({
-            username: req.body.username,
-            password: password,
-            balance: 0
-        });
-        res.redirect('/auth/login')
-    }
 })
 
 app.get('/register', (req, res) => {
@@ -150,6 +120,8 @@ app.get('/profile', async(req, res) => {
     });
     res.render('profile', {user:req.user, balance: user.balance})
 })
+
+//POST Requests
 
 app.post('/transfer', async(req, res) => {
 
@@ -173,6 +145,38 @@ app.post('/transfer', async(req, res) => {
         }
 
         res.redirect('/profile');
+    }
+})
+
+app.post('/auth/login', passport.authenticate('local', {
+    successRedirect: '/profile',
+    failureRedirect: '/auth/login',
+    failureFlash: true
+}))
+
+app.post('/register', async(req, res) => {
+    const users = await loadUsers();
+    const user = await users.findOne({
+        $or: [
+            { username: req.body.username },
+            { email: req.body.email }
+        ]
+    });
+    if(user && user.username === req.body.username) {
+        req.flash('info', 'This username already exists');
+        return res.redirect('/register');
+    } else if(user && user.email === req.body.email) {
+        req.flash('info', 'This email already exists');
+        return res.redirect('/register');
+    } else {
+        const password = await bcrypt.hash(req.body.password, 10);
+        await users.insertOne({
+            username: req.body.username,
+            password: password,
+            email: req.body.email,
+            balance: 0
+        });
+        res.redirect('/auth/login')
     }
 })
 
