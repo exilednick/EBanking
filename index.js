@@ -7,6 +7,7 @@ const config = require('./config');
 const flash = require('express-flash');
 const bcrypt = require('bcrypt');
 const MongoClient = require('mongodb').MongoClient;
+const ObjectID = require('mongodb').ObjectID;
 
 const app = express();
 
@@ -21,12 +22,20 @@ app.use(express.urlencoded({extended:false}));
 app.use(passport.initialize());
 app.use(passport.session())
 
-async function loadUsers() {
+const loadUsers = async() => {
     const client = await MongoClient.connect(config.db.uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
     return client.db('EBanking').collection('users');
+}
+
+const loadAccounts = async() => {
+    const client = await MongoClient.connect(config.db.uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+      return client.db('EBanking').collection('account');
 }
 
 passport.serializeUser((user, done) => {
@@ -57,7 +66,7 @@ passport.use(
         callbackURL: "/auth/google/callback"
     }, async(accessToken, refreshToken, profile, done) => {
         const users = await loadUsers();
-
+        const accounts = await loadAccounts();
         const user = await users.findOne({
             googleId: profile.id
         })
@@ -70,9 +79,13 @@ passport.use(
                 users.insertOne({
                     username: profile.displayName,
                     googleId: profile.id,
-                    email: profile.emails[0].value,
-                    balance: 0
-                }, (err, resp) => {
+                    email: profile.emails[0].value
+                }, async(err, resp) => {
+                    await accounts.insertOne({
+                        userId: resp.ops[0]._id,
+                        balance: 0,
+                        transactions: []
+                    })
                     done(null, resp.ops[0])
                 })
 
@@ -83,7 +96,7 @@ passport.use(
     }
 ))
 
-// GET requests
+//Login routes
 
 app.get('/auth/login', async(req, res) => {
     if(req.user)
@@ -105,56 +118,21 @@ app.get('/auth/google/callback',passport.authenticate('google', {session: true})
     res.redirect('/profile');
 })
 
-app.get('/', async(req, res) => {
-    res.render('home', {user:req.user});
-})
-
-app.get('/register', (req, res) => {
-    res.render('register', {user:req.user});
-})
-
-app.get('/profile', async(req, res) => {
-    const users = await loadUsers();
-    const user = await users.findOne({  
-        username: req.user.username
-    });
-    res.render('profile', {user:req.user, balance: user.balance})
-})
-
-//POST Requests
-
-app.post('/transfer', async(req, res) => {
-    res.redirect('/profile');
-})
-
-app.post('/deposit', async(req, res) => {
-    const users = await loadUsers();
-    await users.updateOne({
-        username: req.user.username
-    }, {
-        $inc: { balance: parseInt(req.body.amount) }
-    })
-    res.redirect('/profile')
-})
-
-app.post('/withdraw', async(req, res) => {
-    const users = await loadUsers();
-    await users.updateOne({
-        username: req.user.username
-    }, {
-        $inc: { balance: parseInt(-req.body.amount) }
-    })
-    res.redirect('/profile')
-})
-
 app.post('/auth/login', passport.authenticate('local', {
     successRedirect: '/profile',
     failureRedirect: '/auth/login',
     failureFlash: true
 }))
 
+//Register routes
+
+app.get('/register', (req, res) => {
+    res.render('register', {user:req.user});
+})
+
 app.post('/register', async(req, res) => {
     const users = await loadUsers();
+    const accounts = await loadAccounts();
     const user = await users.findOne({
         $or: [
             { username: req.body.username },
@@ -173,10 +151,101 @@ app.post('/register', async(req, res) => {
             username: req.body.username,
             password: password,
             email: req.body.email,
-            balance: 0
+        }, async(err, resp) => {
+            await accounts.insertOne({
+                userId: resp.ops[0]._id,
+                balance: 0,
+                transactions: []
+            })
         });
         res.redirect('/auth/login')
     }
 })
+
+//profile and homepage routes
+
+app.get('/', async(req, res) => {
+    res.render('home', {user:req.user});
+})
+
+app.get('/profile', async(req, res) => {
+    const accounts = await loadAccounts();
+    const account = await accounts.findOne({
+        userId: new ObjectID(req.user._id)
+    })
+    res.render('profile', {user:req.user, account: account})
+})
+
+//POST Requests
+
+app.post('/transfer', async(req, res) => {
+    const users = await loadUsers();
+    const newId = ObjectID(req.body.account);
+    const accounts = await loadAccounts();
+    const user = await users.findOne({
+        _id: newId
+    });
+    if(!user) {
+        req.flash('error', 'Incorrect account id');
+    } else {
+        await accounts.updateOne({
+            userId: newId
+        }, {
+            $inc: { balance: parseInt(req.body.amount) },
+            $push: { transactions : {
+                    type: 'credit',
+                    amount: parseInt(req.body.amount),
+                    time: (new Date(Date.now())).toLocaleString()
+                }
+            }
+        })
+        await accounts.updateOne({
+            userId: new ObjectID(req.user._id)
+        }, {
+            $inc: { balance: parseInt(-req.body.amount) },
+            $push: { transactions : {
+                    type: 'debit',
+                    amount: parseInt(req.body.amount),
+                    time: (new Date(Date.now())).toLocaleString()
+                }
+            }
+        })
+
+    }
+    res.redirect('/profile')
+})
+
+app.post('/deposit', async(req, res) => {
+    const accounts = await loadAccounts();
+    await accounts.updateOne({
+        userId: new ObjectID(req.user._id)
+    }, {
+        $inc: { balance: parseInt(req.body.amount) },
+        $push: { transactions : {
+                type: 'credit',
+                amount: parseInt(req.body.amount),
+                time: (new Date(Date.now())).toLocaleString()
+            }
+        }
+    })
+    res.redirect('/profile')
+})
+
+app.post('/withdraw', async(req, res) => {
+    const accounts = await loadAccounts();
+    await accounts.updateOne({
+        userId: new ObjectID(req.user._id)
+    }, {
+        $inc: { balance: parseInt(-req.body.amount) },
+        $push: { transactions : {
+                type: 'debit',
+                amount: parseInt(req.body.amount),
+                time: (new Date(Date.now())).toLocaleString()
+            }
+        }
+    })
+    res.redirect('/profile')
+})
+
 
 app.listen(5000, () => console.log('server started'));
