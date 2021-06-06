@@ -171,7 +171,7 @@ app.get('/', async(req, res) => {
 app.get('/profile', async(req, res) => {
     const accounts = await loadAccounts();
     const account = await accounts.findOne({
-        userId: new ObjectID(req.user._id)
+        userId: new ObjectID(req.user._id.toString())
     })
     res.render('profile', {user:req.user, account: account})
 })
@@ -200,7 +200,7 @@ app.post('/transfer', async(req, res) => {
             }
         })
         await accounts.updateOne({
-            userId: new ObjectID(req.user._id)
+            userId: new ObjectID(req.user._id.toString())
         }, {
             $inc: { balance: parseInt(-req.body.amount) },
             $push: { transactions : {
@@ -218,7 +218,7 @@ app.post('/transfer', async(req, res) => {
 app.post('/deposit', async(req, res) => {
     const accounts = await loadAccounts();
     await accounts.updateOne({
-        userId: new ObjectID(req.user._id)
+        userId: new ObjectID(req.user._id.toString())
     }, {
         $inc: { balance: parseInt(req.body.amount) },
         $push: { transactions : {
@@ -234,7 +234,7 @@ app.post('/deposit', async(req, res) => {
 app.post('/withdraw', async(req, res) => {
     const accounts = await loadAccounts();
     await accounts.updateOne({
-        userId: new ObjectID(req.user._id)
+        userId: new ObjectID(req.user._id.toString())
     }, {
         $inc: { balance: parseInt(-req.body.amount) },
         $push: { transactions : {
