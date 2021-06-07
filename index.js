@@ -199,7 +199,7 @@ app.post('/transfer', async(req, res) => {
                 }
             }
         })
-        await accounts.updateOne({
+        await accounts.updateOne({  
             userId: new ObjectID(req.user._id.toString())
         }, {
             $inc: { balance: parseInt(-req.body.amount) },
